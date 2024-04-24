@@ -1,5 +1,6 @@
 // IMPORTS ---------------------------------------------------------------------
 
+import birl
 import gleam/bit_array
 import gleam/crypto
 import gleam/dict.{type Dict}
@@ -9,7 +10,6 @@ import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/string
-import birl
 
 // TYPES -----------------------------------------------------------------------
 
@@ -28,7 +28,7 @@ pub type Verified
 pub type Unverified
 
 ///
-pub opaque type Jwt(status) {
+pub type Jwt(status) {
   Jwt(header: Header, payload: Payload)
 }
 
@@ -736,7 +736,7 @@ fn get_signature(data: String, algorithm: Algorithm, secret: String) -> String {
   }
 }
 
-fn parts(
+pub fn parts(
   jwt_string: String,
 ) -> Result(#(Header, Payload, Option(String)), JwtDecodeError) {
   let jwt_parts = string.split(jwt_string, ".")
@@ -789,7 +789,7 @@ fn parts(
   Ok(#(header, payload, signature))
 }
 
-fn ensure_valid_expiration(payload: Payload) -> Result(Nil, JwtDecodeError) {
+pub fn ensure_valid_expiration(payload: Payload) -> Result(Nil, JwtDecodeError) {
   let exp = {
     use exp <- result.try(
       dict.get(payload, "exp")
@@ -819,7 +819,7 @@ fn ensure_valid_expiration(payload: Payload) -> Result(Nil, JwtDecodeError) {
   }
 }
 
-fn ensure_valid_not_before(payload: Payload) -> Result(Nil, JwtDecodeError) {
+pub fn ensure_valid_not_before(payload: Payload) -> Result(Nil, JwtDecodeError) {
   let nbf = {
     use nbf <- result.try(
       dict.get(payload, "nbf")
@@ -849,7 +849,7 @@ fn ensure_valid_not_before(payload: Payload) -> Result(Nil, JwtDecodeError) {
   }
 }
 
-fn ensure_valid_alg(header: Header) -> Result(String, JwtDecodeError) {
+pub fn ensure_valid_alg(header: Header) -> Result(String, JwtDecodeError) {
   use alg <- result.try(
     dict.get(header, "alg")
     |> result.replace_error(NoAlg),

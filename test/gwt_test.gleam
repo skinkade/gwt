@@ -1,8 +1,11 @@
+import birl
+import gleam/bit_array
+import gleam/dynamic
+import gleam/json
 import gleeunit
 import gleeunit/should
-import gleam/dynamic
 import gwt
-import birl
+import gwt/jwk
 
 const signing_secret = "gleam"
 
@@ -135,5 +138,70 @@ pub fn nbf_jwt_test() {
   |> gwt.set_not_before(0)
   |> gwt.to_signed_string(gwt.HS256, signing_secret)
   |> gwt.from_signed_string(signing_secret)
+  |> should.be_ok()
+}
+
+/// JWK Tests
+/// 
+pub fn parse_jwk_and_sign_test() {
+  let pub_key_json =
+    "{\"kty\":\"RSA\",
+      \"n\": \"0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMstn64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbISD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw\",
+      \"e\":\"AQAB\",
+      \"alg\":\"RS256\",
+      \"kid\":\"2011-04-29\"}"
+  let pub_key =
+    json.decode(pub_key_json, jwk.decode_public_key)
+    |> should.be_ok()
+
+  let priv_key_json =
+    "{\"kty\": \"RSA\",
+      \"n\": \"0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMstn64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbISD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw\",
+      \"e\": \"AQAB\",
+      \"d\": \"X4cTteJY_gn4FYPsXB8rdXix5vwsg1FLN5E3EaG6RJoVH-HLLKD9M7dx5oo7GURknchnrRweUkC7hT5fJLM0WbFAKNLWY2vv7B6NqXSzUvxT0_YSfqijwp3RTzlBaCxWp4doFk5N2o8Gy_nHNKroADIkJ46pRUohsXywbReAdYaMwFs9tv8d_cPVY3i07a3t8MN6TNwm0dSawm9v47UiCl3Sk5ZiG7xojPLu4sbg1U2jx4IBTNBznbJSzFHK66jT8bgkuqsk0GjskDJk19Z4qwjwbsnn4j2WBii3RL-Us2lGVkY8fkFzme1z0HbIkfz0Y6mqnOYtqc0X4jfcKoAC8Q\",
+      \"alg\": \"RS256\",
+      \"kid\": \"2011-04-29\"}"
+  let priv_key =
+    json.decode(priv_key_json, jwk.decode_private_key)
+    |> should.be_ok()
+
+  let message = bit_array.from_string("hello")
+  let signature = jwk.sign(message, priv_key)
+  jwk.verify(message, signature, pub_key)
+  |> should.be_true()
+}
+
+pub fn the_big_test() {
+  let pub_keys_json =
+    "{\"keys\": [
+     {\"kty\":\"RSA\",
+      \"n\": \"0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMstn64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbISD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw\",
+      \"e\":\"AQAB\",
+      \"alg\":\"RS256\",
+      \"kid\":\"2011-04-29\"}]}"
+  let assert Ok(jwks) = json.decode(pub_keys_json, jwk.decode_public_jwks)
+
+  let priv_key_json =
+    "{\"kty\": \"RSA\",
+      \"n\": \"0vx7agoebGcQSuuPiLJXZptN9nndrQmbXEps2aiAFbWhM78LhWx4cbbfAAtVT86zwu1RK7aPFFxuhDR1L6tSoc_BJECPebWKRXjBZCiFV4n3oknjhMstn64tZ_2W-5JsGY4Hc5n9yBXArwl93lqt7_RN5w6Cf0h4QyQ5v-65YGjQR0_FDW2QvzqY368QQMicAtaSqzs8KJZgnYb9c7d0zgdAZHzu6qMQvRL5hajrn1n91CbOpbISD08qNLyrdkt-bFTWhAI4vMQFh6WeZu0fM4lFd2NcRwr3XPksINHaQ-G_xBniIqbw0Ls1jF44-csFCur-kEgU8awapJzKnqDKgw\",
+      \"e\": \"AQAB\",
+      \"d\": \"X4cTteJY_gn4FYPsXB8rdXix5vwsg1FLN5E3EaG6RJoVH-HLLKD9M7dx5oo7GURknchnrRweUkC7hT5fJLM0WbFAKNLWY2vv7B6NqXSzUvxT0_YSfqijwp3RTzlBaCxWp4doFk5N2o8Gy_nHNKroADIkJ46pRUohsXywbReAdYaMwFs9tv8d_cPVY3i07a3t8MN6TNwm0dSawm9v47UiCl3Sk5ZiG7xojPLu4sbg1U2jx4IBTNBznbJSzFHK66jT8bgkuqsk0GjskDJk19Z4qwjwbsnn4j2WBii3RL-Us2lGVkY8fkFzme1z0HbIkfz0Y6mqnOYtqc0X4jfcKoAC8Q\",
+      \"alg\": \"RS256\",
+      \"kid\": \"2011-04-29\"}"
+  let assert Ok(priv_key) = json.decode(priv_key_json, jwk.decode_private_key)
+
+  let jwt =
+    gwt.new()
+    |> gwt.set_expiration(
+      {
+        birl.now()
+        |> birl.to_unix()
+      }
+      + 100_000,
+    )
+
+  jwt
+  |> jwk.to_signed_string(priv_key)
+  |> jwk.from_signed_string(jwks)
   |> should.be_ok()
 }
